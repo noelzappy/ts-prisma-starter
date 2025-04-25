@@ -1,41 +1,49 @@
 
 services:
+  traefik:
+    image: traefik:v3.4.0-rc1
+    container_name: traefik
+    network_mode: "host"
+    command:
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=noelzappy+dev@gmail.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./traefik/.htpasswd:/etc/traefik/.htpasswd:ro
+    restart: unless-stopped
 
-  server:
-    container_name: server
+  backend-api:
+    container_name: backend-api
     build:
       context: ./
       dockerfile: Dockerfile
-    ports:
-      - "3005:3005"
-    restart: "unless-stopped"
+    restart: unless-stopped
     env_file:
       - .env
-    develop:
-      watch:
-        - action: sync
-          path: ./
-          target: /app
-          ignore:
-            - node_modules/
-        - action: rebuild
-          path: package.json
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lovenest.rule=Host(`tempalate.dev.noelzappy.dev`)"
+      - "traefik.http.routers.lovenest.entrypoints=websecure"
+      - "traefik.http.routers.lovenest.tls.certresolver=letsencrypt"
+      - "traefik.http.services.lovenest.loadbalancer.server.port=3005"
 
-  workers:
-    container_name: workers
+  background-workers:
+    container_name: background-workers
     build:
       context: ./
       dockerfile: Dockerfile
-    restart: "unless-stopped"
+    restart: unless-stopped
     env_file:
       - .env
     command: npm run start:workers
-    develop:
-      watch:
-        - action: sync
-          path: ./
-          target: /app
-          ignore:
-            - node_modules/
-        - action: rebuild
-          path: package.json
