@@ -1,0 +1,24 @@
+# baseURL
+@baseURL = http://localhost:3000
+# accessToken
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNjY2NTQ3NzY5LCJleHBpcmF0aW9uIjoxNjY2NTQ4MzY5fQ.7gk8v1xqZzj7b8e3d
+
+###
+# Get Me
+GET {{ baseURL }}/users/Me
+Content-Type: application/json
+Authorization: Bearer {{ accessToken }}
+
+
+###
+# Update Me
+PATCH {{ baseURL }}/users/me
+Content-Type: application/json
+Authorization: Bearer {{ accessToken }}
+
+{
+    "email": "example@email.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "password": "password",
+}

@@ -1,0 +1,20 @@
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  firstName       String
+  lastName        String
+  fullName        String?
+  lastLoginAt     DateTime?
+  phoneNumber     String?
+  avatar          String?
+  tokens          Token[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  isEmailVerified Boolean?  @default(false)
+  emailVerifiedAt DateTime?
+
+  @@index([firstName, lastName, email])
+  @@index([email])
+  @@map("users")
+}

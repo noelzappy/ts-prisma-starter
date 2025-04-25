@@ -1,0 +1,73 @@
+# baseURL
+@baseURL = http://localhost:3000
+
+###
+# User Signup
+POST {{ baseURL }}/auth/signup
+Content-Type: application/json
+
+{
+    "email": "example@email.com",
+	"password": "password"
+}
+
+###
+# User Login
+POST {{ baseURL }}/auth/login
+Content-Type: application/json
+
+{
+    "email": "example@email.com",
+	"password": "password"
+}
+
+###
+# User Logout
+POST {{ baseURL }}/auth/logout
+Content-Type: application/json
+
+###
+# Refresh Auth Token
+POST {{ baseURL }}/auth/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": "example_refresh_token"
+}
+
+###
+# Forgot Password
+POST {{ baseURL }}/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": "example@example.com"
+}
+
+###
+# Reset Password
+POST {{ baseURL }}/auth/reset-password
+Content-Type: application/json
+
+{
+    "password": "new_password",
+    "token": "example_token"
+}
+
+###
+# Send Verification Email
+POST {{ baseURL }}/auth/send-email-verification
+Content-Type: application/json
+
+{
+    "email": "example@example.com"
+}
+
+###
+# Verify Email
+POST {{ baseURL }}/auth/verify-email
+Content-Type: application/json
+
+{
+    "token": "example_token"
+}
