@@ -19,7 +19,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "start:workers": "ts-node -r tsconfig-paths/register src/workers/index.ts",
-    "deploy": "docker stack deploy -c docker-compose.yml edromart"
+    "deploy": "docker stack deploy -c docker-compose.yml backend"
   },
   "prisma": {
     "schema": "src/prisma/schema",
