@@ -1,49 +1,67 @@
-
 services:
   traefik:
     image: traefik:v3.4.0-rc1
-    container_name: traefik
-    network_mode: "host"
     command:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.email=noelzappy+dev@gmail.com"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - '--entrypoints.web.address=:80'
+      - '--entrypoints.websecure.address=:443'
+      - '--providers.docker.swarmMode=true'
+      - '--entrypoints.web.http.redirections.entrypoint.to=websecure'
+      - '--entrypoints.web.http.redirections.entrypoint.scheme=https'
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      # - '--certificatesresolvers.letsencrypt.acme.tlschallenge=true'
+      - '--certificatesresolvers.letsencrypt.acme.httpchallenge=true'
+      - '--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web'
+      - '--certificatesresolvers.letsencrypt.acme.email=dev@example.com'
+      - '--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json'
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
       - ./traefik/.htpasswd:/etc/traefik/.htpasswd:ro
     restart: unless-stopped
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - traefik
 
   backend-api:
-    container_name: backend-api
     build:
       context: ./
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
       - .env
+    networks:
+      - traefik
+    environment:
+      - TZ=Africa/Accra
+    deploy:
+      replicas: 3
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.lovenest.rule=Host(`tempalate.dev.noelzappy.dev`)"
-      - "traefik.http.routers.lovenest.entrypoints=websecure"
-      - "traefik.http.routers.lovenest.tls.certresolver=letsencrypt"
-      - "traefik.http.services.lovenest.loadbalancer.server.port=3005"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.api.rule=Host(`dev-api.example.com`)'
+      - 'traefik.http.routers.api.entrypoints=websecure'
+      - 'traefik.http.routers.api.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.api.loadbalancer.server.port=3000'
 
-  background-workers:
-    container_name: background-workers
+  bg-workers:
     build:
       context: ./
       dockerfile: Dockerfile
     restart: unless-stopped
+    networks:
+      - traefik
     env_file:
       - .env
+    environment:
+      - TZ=Africa/Accra
     command: npm run start:workers
+
+networks:
+  traefik:
+    external: true

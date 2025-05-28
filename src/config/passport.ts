@@ -6,7 +6,6 @@ import prisma from '@/database';
 import { Passport } from 'passport';
 
 export const passport = new Passport();
-export const staffPassport = new Passport();
 
 const jwtOptions = {
   secretOrKey: SECRET_KEY,

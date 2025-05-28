@@ -18,10 +18,8 @@ export class UserController {
 
   public updateMe = catchAsync(async (req: RequestWithUser, res: Response) => {
     const userData: UpdateUserDto = req.body;
-    delete (userData as any).role;
     delete (userData as any).isEmailVerified;
     delete (userData as any).isPhoneVerified;
-    delete (userData as any).password;
 
     const user = await this.user.updateUser(req.user.id, userData);
     delete user.password;

@@ -13,7 +13,7 @@ import { createServer, Server } from 'http';
 import { Routes } from '@interfaces/routes.interface';
 import { ErrorMiddleware } from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
-import { jwtStrategy, passport, staffPassport } from './config/passport';
+import { jwtStrategy, passport } from './config/passport';
 import { createBullBoard } from '@bull-board/api';
 import { ExpressAdapter } from '@bull-board/express';
 import bullQueues from './workers/bull-board';
@@ -68,6 +68,8 @@ export class App {
     this.app.use(hpp());
     this.app.use(helmet());
     this.app.use(compression());
+
+    // Parse JSON and URL-encoded data
     this.app.use(
       express.json({
         verify(req, res, buf) {
@@ -82,15 +84,6 @@ export class App {
     // jwt authentication
     this.app.use(passport.initialize());
     passport.use('jwt', jwtStrategy);
-
-    // staff jwt authentication
-    this.app.use(
-      staffPassport.initialize({
-        userProperty: 'internal',
-        assignProperty: 'internal',
-        key: 'internal',
-      }),
-    );
   }
 
   private initializeBullBoard() {
@@ -100,17 +93,21 @@ export class App {
       queues: bullQueues,
       serverAdapter,
     });
-    this.app.use(
-      '/bull-board',
-      basicAuth({
-        users: {
-          [process.env.BULL_BOARD_USERNAME]: process.env.BULL_BOARD_PASSWORD,
-        },
-        challenge: true,
-        realm: 'Bull Board',
-      }),
-      serverAdapter.getRouter(),
-    );
+    if (NODE_ENV === 'production') {
+      this.app.use(
+        '/bull-board',
+        basicAuth({
+          users: {
+            [process.env.BULL_BOARD_USERNAME]: process.env.BULL_BOARD_PASSWORD,
+          },
+          challenge: true,
+          realm: 'Bull Board',
+        }),
+        serverAdapter.getRouter(),
+      );
+    } else {
+      this.app.use('/bull-board', serverAdapter.getRouter());
+    }
   }
 
   private initializeRoutes(routes: Routes[]) {
