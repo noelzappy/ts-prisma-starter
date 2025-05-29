@@ -5,9 +5,8 @@ export interface DataStoredInToken {
   sub: string;
   iat: number;
   exp: number;
-  phone?: string;
-  otp?: string;
   type: TokenType;
+  cuid: string;
 }
 
 export interface RequestWithUser extends Request {

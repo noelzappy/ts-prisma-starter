@@ -17,7 +17,19 @@ export const jwtVerify = async (payload: DataStoredInToken, done) => {
     if (payload.type !== TokenType.access) {
       throw new Error('Invalid token type');
     }
-    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+    const token = await prisma.token.findUnique({
+      where: {
+        uid: payload.cuid,
+        userId: payload.sub,
+        expiresAt: new Date(payload.exp),
+        type: payload.type,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    const user = token?.user;
 
     if (!user) {
       return done(null, false);

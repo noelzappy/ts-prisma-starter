@@ -14,6 +14,7 @@ model Token {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   user      User      @relation(fields: [userId], references: [id])
+  uid       String    @unique
 
   @@index([expiresAt])
   @@index([token])

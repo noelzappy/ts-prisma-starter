@@ -7,23 +7,26 @@ import { UserService } from './users.service';
 import { Prisma, TokenType } from '@/generated/prisma-client';
 import prisma from '@/database';
 import { HttpException } from '@/utils/httpException';
+import crypto from 'crypto';
 
 type GenerateTokenBody = {
   expires: number;
   userId: string;
   type: TokenType;
+  cuid: string;
 };
 
 @Service()
 export class TokenService {
   public _users = Container.get(UserService);
 
-  generateToken = ({ expires, userId, type }: GenerateTokenBody) => {
+  generateToken = ({ expires, userId, type, cuid }: GenerateTokenBody) => {
     const dataStoredInToken: DataStoredInToken = {
       sub: userId,
       iat: Date.now(),
       exp: expires || Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
       type,
+      cuid: cuid || '',
     };
 
     return sign(dataStoredInToken, SECRET_KEY);
@@ -57,21 +60,27 @@ export class TokenService {
 
   public async generateAuthTokens(userId: string) {
     const tokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    const accessUUID = crypto.randomUUID();
+
     const accessToken = this.generateToken({
       userId,
       type: TokenType.access,
       expires: tokenExpires.getTime(),
+      cuid: accessUUID,
     });
-    const refreshTokenExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
+    const refreshTokenExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const refreshUUID = crypto.randomUUID();
     const refreshToken = this.generateToken({
       userId,
       type: TokenType.refresh,
       expires: refreshTokenExpires.getTime(),
+      cuid: refreshUUID,
     });
 
-    await Promise.all([
-      prisma.token.create({
+    await prisma.$transaction(async tx => {
+      await tx.token.create({
         data: {
           token: accessToken,
           expiresAt: tokenExpires,
@@ -81,9 +90,11 @@ export class TokenService {
               id: userId,
             },
           },
+          uid: accessUUID,
         },
-      }),
-      prisma.token.create({
+      });
+
+      await tx.token.create({
         data: {
           token: refreshToken,
           expiresAt: refreshTokenExpires,
@@ -93,9 +104,10 @@ export class TokenService {
               id: userId,
             },
           },
+          uid: refreshUUID,
         },
-      }),
-    ]);
+      });
+    });
 
     return {
       access: { token: accessToken, expires: tokenExpires },
@@ -111,10 +123,13 @@ export class TokenService {
     }
 
     const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const cuid = crypto.randomUUID();
+
     const token = this.generateToken({
       userId: user.id,
       type: TokenType.resetpassword,
       expires: expires.getTime(),
+      cuid,
     });
 
     await this.saveToken({
@@ -126,6 +141,7 @@ export class TokenService {
       },
       expiresAt: expires,
       type: TokenType.resetpassword,
+      uid: cuid,
     });
 
     return token;
@@ -133,11 +149,12 @@ export class TokenService {
 
   public async generateVerifyEmailToken(userId: string) {
     const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-
+    const cuid = crypto.randomUUID();
     const token = this.generateToken({
       userId,
       type: TokenType.verifyemail,
       expires: expires.getTime(),
+      cuid,
     });
 
     await this.saveToken({
@@ -149,6 +166,7 @@ export class TokenService {
       },
       expiresAt: expires,
       type: TokenType.verifyemail,
+      uid: cuid,
     });
 
     return token;
